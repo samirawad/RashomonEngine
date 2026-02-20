@@ -38,6 +38,7 @@ namespace GoapRpgPoC
             // 5. ATTACH CAPABILITIES (Affordances)
             // Note: Walking is a capability of the FEET!
             NPC alice = new NPC("Alice", new Vector2(3, 3));
+            alice.SetState("HasApple", true); // Alice has the goods!
             town.AddNPC(alice);
             
             feet.AddAffordance(new WalkToActivity(bob, alice));

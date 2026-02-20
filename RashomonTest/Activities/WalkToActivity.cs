@@ -26,16 +26,16 @@ namespace GoapRpgPoC.Activities
         public override void OnTick(int currentTick)
         {
             // Simple logic: Move Bob 1 step closer to Alice
-            if (_walker.CurrentPosition.X < _target.CurrentPosition.X) _walker.CurrentPosition = new Vector2(_walker.CurrentPosition.X + 1, _walker.CurrentPosition.Y);
-            else if (_walker.CurrentPosition.X > _target.CurrentPosition.X) _walker.CurrentPosition = new Vector2(_walker.CurrentPosition.X - 1, _walker.CurrentPosition.Y);
+            if (_walker.Position.X < _target.Position.X) _walker.Position = new Vector2(_walker.Position.X + 1, _walker.Position.Y);
+            else if (_walker.Position.X > _target.Position.X) _walker.Position = new Vector2(_walker.Position.X - 1, _walker.Position.Y);
             
-            if (_walker.CurrentPosition.Y < _target.CurrentPosition.Y) _walker.CurrentPosition = new Vector2(_walker.CurrentPosition.X, _walker.CurrentPosition.Y + 1);
-            else if (_walker.CurrentPosition.Y > _target.CurrentPosition.Y) _walker.CurrentPosition = new Vector2(_walker.CurrentPosition.X, _walker.CurrentPosition.Y - 1);
+            if (_walker.Position.Y < _target.Position.Y) _walker.Position = new Vector2(_walker.Position.X, _walker.Position.Y + 1);
+            else if (_walker.Position.Y > _target.Position.Y) _walker.Position = new Vector2(_walker.Position.X, _walker.Position.Y - 1);
 
-            Console.WriteLine($"   [MOVE] {_walker.Name} moved to {_walker.CurrentPosition}...");
+            Console.WriteLine($"   [MOVE] {_walker.Name} moved to {_walker.Position}...");
 
             // If we've arrived, finish the activity
-            if (Vector2.Distance(_walker.CurrentPosition, _target.CurrentPosition) == 0)
+            if (Vector2.Distance(_walker.Position, _target.Position) == 0)
             {
                 ApplyEffects(currentTick);
             }

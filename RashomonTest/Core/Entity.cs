@@ -32,7 +32,21 @@ namespace GoapRpgPoC.Core
         public void AddAffordance(Activity activity) => Affordances.Add(activity);
         
         public void SetState(string key, bool value) => State[key] = value;
-        public bool GetState(string key) => State.ContainsKey(key) && State[key];
+        
+        // --- 3. RECURSIVE STATE CHECK ---
+        public bool GetState(string key)
+        {
+            // 1. Check myself
+            if (State.ContainsKey(key)) return State[key];
+
+            // 2. Check my children (Inventory, Body Parts, etc.)
+            foreach (var child in Children)
+            {
+                if (child.GetState(key)) return true;
+            }
+
+            return false;
+        }
 
         // --- 4. HEARTBEAT (Living Entities) ---
         public virtual void Tick(int currentTick)

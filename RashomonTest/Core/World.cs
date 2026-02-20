@@ -18,15 +18,13 @@ namespace GoapRpgPoC.Core
         public void Tick()
         {
             CurrentTick++;
-            Console.WriteLine($"
---- WORLD TICK {CurrentTick} ---");
+            Console.WriteLine($"\n--- WORLD TICK {CurrentTick} ---");
 
-            // In a real system, this is where we'd iterate through NPCs
-            // and let them Think, Plan, and Act.
+            // Tick all NPCs and their internal entities (Needs, etc.)
             foreach (var npc in NPCs)
             {
-                // For now, we'll just log their position
-                // Console.WriteLine($"{npc.Name} is at {npc.CurrentPosition}");
+                npc.Tick(CurrentTick);
+                // Console.WriteLine($"{npc.Name} is at {npc.Position}");
             }
         }
 

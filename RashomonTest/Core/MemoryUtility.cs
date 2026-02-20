@@ -14,8 +14,7 @@ namespace GoapRpgPoC.Core
                 Directory.CreateDirectory(directoryName);
             }
 
-            Console.WriteLine($"
-[SYSTEM] Exporting memories to {Path.GetFullPath(directoryName)}...");
+            Console.WriteLine($"\n[SYSTEM] Exporting memories to {Path.GetFullPath(directoryName)}...");
 
             foreach (var npc in npcs)
             {
@@ -23,7 +22,7 @@ namespace GoapRpgPoC.Core
                 using (StreamWriter writer = new StreamWriter(filePath))
                 {
                     writer.WriteLine($"=== MEMORY LOG FOR {npc.Name.ToUpper()} ===");
-                    writer.WriteLine($"Final Position: {npc.CurrentPosition}");
+                    writer.WriteLine($"Final Position: {npc.Position}");
                     writer.WriteLine("--- Timeline ---");
 
                     if (npc.Memories.Count == 0)
@@ -36,8 +35,7 @@ namespace GoapRpgPoC.Core
                         writer.WriteLine($"[Tick {memory.Timestamp}] I remember: {memory.PastActivity.Name}");
                     }
                     
-                    writer.WriteLine("
---- Final State ---");
+                    writer.WriteLine("\n--- Final State ---");
                     foreach (var state in npc.State)
                     {
                         writer.WriteLine($"{state.Key}: {state.Value}");

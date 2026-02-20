@@ -33,5 +33,15 @@ namespace GoapRpgPoC.Core
         
         public void SetState(string key, bool value) => State[key] = value;
         public bool GetState(string key) => State.ContainsKey(key) && State[key];
+
+        // --- 4. HEARTBEAT (Living Entities) ---
+        public virtual void Tick(int currentTick)
+        {
+            // Entities can update their internal states here
+            foreach (var child in Children)
+            {
+                child.Tick(currentTick);
+            }
+        }
     }
 }

@@ -9,67 +9,50 @@ namespace GoapRpgPoC
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== INITIALIZING RPG WORLD ===\n");
+            Console.WriteLine("=== INITIALIZING RASHOMON ENGINE TOWN ===\n");
 
-            // Setup NPCs
-            NPC bob = new NPC("Bob");
-            bob.SetState("HasGold", true);
-            bob.SetState("NearTarget", false);
-            bob.SetState("HasApple", false);
+            World town = new World();
+            Location home = new Location("Bob's Home", 0, 0);
+            Location tavern = new Location("The Rusty Tankard", 3, 3);
+            town.AddLocation(home);
+            town.AddLocation(tavern);
 
-            NPC alice = new NPC("Alice");
-            alice.SetState("HasApple", true);
+            NPC bob = new NPC("Bob", home.Position);
+            NPC alice = new NPC("Alice", tavern.Position); // Alice is waiting at the tavern
 
-            // Give the world a list of possible activities
-            List<Activity> worldActivities = new List<Activity>
+            town.AddNPC(bob);
+            town.AddNPC(alice);
+
+            // New Goal: Bob wants to be socialized
+            town.AvailableActivities = new List<Activity>
             {
                 new WalkToActivity(bob, alice),
-                new TradeActivity(bob, alice)
+                new ChatActivity(bob, alice)
             };
 
-            // Bob's Goal: Get an Apple
-            Console.WriteLine("Bob's Goal: HasApple = true\n");
-            
+            Console.WriteLine("Bob's Goal: Socialized = true\n");
+
             SimplePlanner planner = new SimplePlanner();
-            List<Activity> bobsPlan = planner.BuildPlan(bob, "HasApple", true, worldActivities);
+            List<Activity> bobsPlan = planner.BuildPlan(bob, "Socialized", true, town.AvailableActivities);
 
             if (bobsPlan != null)
             {
-                Console.WriteLine("=== PLAN GENERATED ===");
-                foreach (var step in bobsPlan)
-                {
-                    Console.WriteLine($"- {step.Name}");
-                }
-
-                // Execute the plan (Simulating game time)
-                int gameClock = 100; 
                 foreach (var action in bobsPlan)
                 {
-                    action.CompleteActivity(gameClock);
-                    gameClock += 10; // Time passes
+                    Console.WriteLine($"\n[STARTING] {action.Name}");
+                    action.Initialize();
+                    while (!action.IsFinished)
+                    {
+                        town.Tick();
+                        action.OnTick(town.CurrentTick);
+                        System.Threading.Thread.Sleep(200); 
+                    }
                 }
             }
-            else
-            {
-                Console.WriteLine("Bob could not find a valid plan.");
-            }
 
-            // --- QUERYING THE LOGS ---
-            Console.WriteLine("\n=== GLOBAL HISTORY LOG ===");
-            foreach (var act in GlobalHistoryLog.History)
-            {
-                Console.WriteLine($"Occurred: {act.Name}");
-            }
-
-            Console.WriteLine("\n=== ALICE'S MEMORIES ===");
-            foreach (var mem in alice.Memories)
-            {
-                Console.WriteLine($"Timestamp {mem.Timestamp}: I remember participating in '{mem.PastActivity.Name}'");
-            }
-            
-            Console.WriteLine("\n=== BOB'S CURRENT STATE ===");
-            Console.WriteLine($"Has Apple: {bob.GetState("HasApple")}");
-            Console.WriteLine($"Has Gold: {bob.GetState("HasGold")}");
+            Console.WriteLine("\n=== SIMULATION COMPLETE ===");
+            Console.WriteLine($"Bob is socialized: {bob.GetState("Socialized")}");
+            Console.WriteLine($"Alice is socialized: {alice.GetState("Socialized")}");
             
             Console.ReadLine();
         }

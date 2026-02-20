@@ -18,9 +18,9 @@ namespace GoapRpgPoC.Activities
             // Preconditions: Must be near each other
             Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { "NearTarget", true } };
 
-            // Effects: Both feel socialized!
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "Socialized", true } };
-            Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "Socialized", true } };
+            // Effects: Both satisfy their social need!
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsLonely", false } };
+            Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "IsLonely", false } };
         }
 
         public override void OnTick(int currentTick)

@@ -9,69 +9,63 @@ namespace GoapRpgPoC
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== INITIALIZING RASHOMON ENGINE TOWN ===\n");
+            Console.WriteLine("=== INITIALIZING RELATIONSHIP-BASED RASHOMON TOWN ===\n");
 
-            // 1. Setup the World
             World town = new World();
             
-            // 2. Define More Locations
-            Location home = new Location("Bob's Home", 0, 0);
-            Location market = new Location("Market Square", 4, 4);
-            Location blacksmith = new Location("Iron Hearth Forge", 5, 0);
-            Location forest = new Location("Greenwood Forest", 0, 5);
+            // 1. Create Locations
             Location tavern = new Location("The Rusty Tankard", 3, 3);
-
-            town.AddLocation(home);
-            town.AddLocation(market);
-            town.AddLocation(blacksmith);
-            town.AddLocation(forest);
             town.AddLocation(tavern);
 
-            // 3. Setup More NPCs
-            NPC bob = new NPC("Bob", home.Position);
-            NPC alice = new NPC("Alice", market.Position);
-            NPC charlie = new NPC("Charlie", blacksmith.Position);
-            NPC diana = new NPC("Diana", tavern.Position); // Diana is resting at the tavern
-
+            // 2. Create NPCs
+            NPC bob = new NPC("Bob", new Vector2(0, 0));
+            NPC alice = new NPC("Alice", tavern.Position);
             town.AddNPC(bob);
             town.AddNPC(alice);
-            town.AddNPC(charlie);
-            town.AddNPC(diana);
 
-            // 4. Register Activities (Bob still wants to chat with Alice!)
-            town.AvailableActivities = new List<Activity>
-            {
-                new WalkToActivity(bob, alice),
-                new ChatActivity(bob, alice)
-            };
+            // 3. Setup Relationships & Affordances
+            // Alice "Affords" a Chat activity
+            Activity chatWithAlice = new ChatActivity(bob, alice);
+            Activity walkToAlice = new WalkToActivity(bob, alice);
+            
+            alice.AddAffordance(chatWithAlice);
+            alice.AddAffordance(walkToAlice);
 
-            // 5. Run the Simulation
-            Console.WriteLine($"[TOWN MAP] {town.Locations.Count} locations and {town.NPCs.Count} NPCs ready.\n");
-            Console.WriteLine("Bob's Goal: Socialized = true\n");
+            // Bob knows Alice! This is the "Knowledge Link"
+            bob.SetRelationship("Friend", alice);
+
+            // 4. Run the Discovery-Based Planner
+            Console.WriteLine($"Bob is at {bob.Position}. He knows Alice is at {alice.Position}.");
+            Console.WriteLine("Bob's Goal: Socialized = true (He will search his relationships...)\n");
 
             SimplePlanner planner = new SimplePlanner();
-            List<Activity> bobsPlan = planner.BuildPlan(bob, "Socialized", true, town.AvailableActivities);
+            List<Activity> bobsPlan = planner.BuildPlan(bob, "Socialized", true);
 
             if (bobsPlan != null)
             {
+                Console.WriteLine("=== DISCOVERY PLAN GENERATED ===");
                 foreach (var action in bobsPlan)
                 {
-                    Console.WriteLine($"\n[STARTING] {action.Name}");
+                    Console.WriteLine($"- {action.Name}");
+                }
+
+                foreach (var action in bobsPlan)
+                {
                     action.Initialize();
                     while (!action.IsFinished)
                     {
                         town.Tick();
                         action.OnTick(town.CurrentTick);
-                        System.Threading.Thread.Sleep(100); 
                     }
                 }
             }
+            else
+            {
+                Console.WriteLine("Bob doesn't know anyone who affords socializing!");
+            }
 
-            // 6. DUMP THE RASHOMON FILES!
             MemoryUtility.DumpMemories(town.NPCs);
-
             Console.WriteLine("\n=== SIMULATION COMPLETE ===");
-            Console.WriteLine("Memories exported. Press Enter to exit.");
             Console.ReadLine();
         }
     }

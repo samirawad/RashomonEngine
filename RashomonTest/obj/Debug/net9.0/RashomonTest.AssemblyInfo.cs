@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RashomonTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+75307e1ddd84f8560476a404c3133ab242adc72e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7448eaf38d302b5a22d664cb03ce4769850097b6")]
 [assembly: System.Reflection.AssemblyProductAttribute("RashomonTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RashomonTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

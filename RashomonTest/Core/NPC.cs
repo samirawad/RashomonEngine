@@ -10,6 +10,9 @@ namespace GoapRpgPoC.Core
         // Sentience: Personal Timeline
         public List<Memory> Memories { get; private set; } = new List<Memory>();
 
+        // Debugging: Technical log of simulation events
+        public List<string> DebugLog { get; private set; } = new List<string>();
+
         public NPC(string name, Vector2 startingPosition) : base(name, startingPosition)
         {
         }
@@ -21,6 +24,11 @@ namespace GoapRpgPoC.Core
         public void Remember(Activity activity, int time)
         {
             Memories.Add(new Memory(activity, time));
+        }
+
+        public void LogDebug(string message)
+        {
+            DebugLog.Add(message);
         }
     }
 }

@@ -11,22 +11,23 @@ NPCs act as dynamic knowledge graphs, discovering activities through subjective 
 
 ### 1. Entities (The Universal Atom)
 The base class for everything in the world. 
-- **Affordances**: Entities "offer" Activities (e.g., an Axe affords "Chop", a Stomach affords "Hunger_Goal").
-- **Container Logic**: Entities can contain other entities (e.g., an NPC contains Body Parts; a Chest contains Items).
-- **State**: Key-value pairs representing the entity's current condition (e.g., `Health: 100`, `Sharpness: 5`).
+- **Hierarchy**: Entities contain other entities (e.g., Bob contains a Stomach and an Inventory; the Inventory contains an Apple).
+- **Affordances**: Entities "offer" Activities (e.g., an Axe affords "Chop").
+- **State (Transient)**: Mutable conditions (e.g., `Hunger: 80`, `IsBroken: true`).
+- **Tags (Intrinsic)**: Immutable properties used for classification (e.g., `Edible`, `Weapon`, `Flammable`).
 
 ### 2. Agents (NPCs as Knowledge Graphs)
 Specialized entities that manage a "Personal World" of internal and external links.
 - **Knowledge Graph**: A dictionary of `Relationships` to other entities.
     - **External**: Friends, Enemies, Known Locations.
     - **Internal**: Body Parts (Hands, Eyes), Needs (Stomach, Mind), Inventory (Items).
-- **Discovery-Based Planning**: NPCs do not have a static list of actions. They query their **Knowledge Graph** to find entities that afford the activities required to satisfy their current goals.
+- **Discovery-Based Planning**: NPCs scan their graph to find entities that afford the activities required to satisfy their goals.
 
 ### 3. Activities (Scripted Interactions)
 The "verbs" that drive the simulation.
-- **Director Logic**: Activities orchestrate the interaction between multiple entities (e.g., a "Combat" activity orchestrates the "Sword" entity of the attacker and the "Body" entity of the defender).
-- **Latent Execution**: Activities "tick" over time, allowing for duration and phased logic.
-- **Relationship Mutation**: Activities can create or destroy relationships (e.g., "Eating" destroys the relationship to the "Apple" entity).
+- **Preconditions**: Can be state-based (`HasGold = true`) or tag-based (`HasTag("Edible")`).
+- **Director Logic**: Activities orchestrate interactions between entities over time.
+- **Physical Transfer**: Activities can move entities between hierarchies (e.g., `TradeActivity` moves an Apple entity from Seller to Buyer).
 
 ### 4. The Planner (Uniform Discovery)
 The planner is implementation-agnostic. It follows a simple loop:
@@ -34,20 +35,27 @@ The planner is implementation-agnostic. It follows a simple loop:
 2. **Search**: The Agent searches its **Knowledge Graph** for any entity (Internal or External) that provides a matching **Affordance**.
 3. **Chain**: The planner builds a sequence of activities to move the agent into position and trigger the affordance.
 
+### 5. Dual-Logging (The "Rashomon" Files)
+The engine produces two distinct logs for every NPC:
+- **Memory Log (`_Memories.txt`)**: A subjective, narrative history of events from the NPC's perspective ("I remember trading with Alice").
+- **Debug Log (`_Debug.txt`)**: A technical, step-by-step audit of the planner's decision tree and execution logic ("Planner selected TradeActivity; Precondition 'NearTarget' failed; Sub-planning WalkTo...").
+
 ---
 
 ## System Flow (The "Recursive" Logic)
 
-1. **Goal**: The `Stomach` entity (Internal Relationship) reaches `Hunger > 80` and affords a `Get_Food` goal.
+1. **Goal**: The `Stomach` entity reaches `IsHungry = true`.
 2. **Discovery**: 
-    - Bob scans his `Inventory` relationship; finds no food.
-    - Bob scans his `External` relationships; finds `Market`.
+    - Bob needs `IsHungry = false`.
+    - `EatActivity` affords this but requires an item with the `Edible` **Tag**.
 3. **Planning**: 
-    - `Market` affords `Trade`. 
-    - `Trade` requires `NearTarget`.
-    - `WalkTo` affords `NearTarget`.
-4. **Execution**: Bob walks to the market and triggers the trade script.
-5. **Mutation**: The `Trade` activity removes the `Gold` entity from Bob and adds an `Apple` entity to his `Inventory` relationship.
+    - Bob scans his inventory; finds nothing tagged `Edible`.
+    - Bob scans external relationships; finds `Market` (Alice) affords `Trade`.
+    - `Trade` provides an item with the `Edible` tag.
+4. **Execution**: 
+    - `WalkTo` (moves Bob).
+    - `Trade` (swaps Gold entity for Apple entity).
+    - `Eat` (consumes Apple entity).
 
 ---
 

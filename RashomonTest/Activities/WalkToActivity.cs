@@ -32,11 +32,14 @@ namespace GoapRpgPoC.Activities
             if (_walker.Position.Y < _target.Position.Y) _walker.Position = new Vector2(_walker.Position.X, _walker.Position.Y + 1);
             else if (_walker.Position.Y > _target.Position.Y) _walker.Position = new Vector2(_walker.Position.X, _walker.Position.Y - 1);
 
-            Console.WriteLine($"   [MOVE] {_walker.Name} moved to {_walker.Position}...");
+            string moveMsg = $"[MOVE] {_walker.Name} moved to {_walker.Position} (Target: {_target.Name} at {_target.Position})";
+            Console.WriteLine($"   {moveMsg}");
+            _walker.LogDebug(moveMsg);
 
             // If we've arrived, finish the activity
             if (Vector2.Distance(_walker.Position, _target.Position) == 0)
             {
+                _walker.LogDebug($"[MOVE] Arrived at {_target.Name}.");
                 ApplyEffects(currentTick);
             }
         }

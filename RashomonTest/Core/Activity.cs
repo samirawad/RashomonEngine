@@ -10,19 +10,20 @@ namespace GoapRpgPoC.Core
         
         public Dictionary<ActivityRole, NPC> Participants = new Dictionary<ActivityRole, NPC>();
         
+        // --- 1. STATES (Transient) ---
         public Dictionary<ActivityRole, Dictionary<string, bool>> Preconditions = new Dictionary<ActivityRole, Dictionary<string, bool>>();
         public Dictionary<ActivityRole, Dictionary<string, bool>> Effects = new Dictionary<ActivityRole, Dictionary<string, bool>>();
 
-        // Called once when the NPC starts the activity
+        // --- 2. TAGS (Intrinsic) ---
+        public Dictionary<ActivityRole, List<string>> PreconditionTags = new Dictionary<ActivityRole, List<string>>();
+
         public virtual void Initialize() 
         {
             IsFinished = false;
         }
 
-        // Called every tick by the World/NPC
         public abstract void OnTick(int currentTick);
 
-        // The final "Handshake" that applies the world state changes
         protected virtual void ApplyEffects(int currentTime)
         {
             Console.WriteLine($"      [SUCCESS] {Name} is complete!");

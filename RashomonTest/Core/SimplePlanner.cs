@@ -7,22 +7,11 @@ namespace GoapRpgPoC.Core
     {
         public List<Activity> BuildPlan(NPC plannerNPC, string goalState, bool goalValue)
         {
-            // --- UNIFIED DISCOVERY ---
+            plannerNPC.LogDebug($"[PLAN] Starting search for {goalState}={goalValue}");
+
             List<Activity> knownActivities = new List<Activity>();
-            
-            // 1. Scan External Relationships (Friends, Locations)
-            foreach (var relation in plannerNPC.Relationships.Values)
-            {
-                knownActivities.AddRange(relation.Affordances);
-            }
-
-            // 2. Scan Internal Hierarchy (Body Parts, Inventory, Needs)
-            foreach (var child in plannerNPC.Children)
-            {
-                knownActivities.AddRange(child.Affordances);
-            }
-
-            // 3. Scan Self-Affordances (Internal logic)
+            foreach (var relation in plannerNPC.Relationships.Values) knownActivities.AddRange(relation.Affordances);
+            foreach (var child in plannerNPC.Children) knownActivities.AddRange(child.Affordances);
             knownActivities.AddRange(plannerNPC.Affordances);
 
             return BuildRecursivePlan(plannerNPC, goalState, goalValue, knownActivities.Distinct().ToList());
@@ -32,23 +21,43 @@ namespace GoapRpgPoC.Core
         {
             List<Activity> plan = new List<Activity>();
 
-            // The goal state could be on the NPC itself, OR one of its children (e.g., Stomach needs to be "Full")
-            // For now, we search for activities that satisfy the goal for the Initiator
             Activity finalAction = availableActivities.FirstOrDefault(a => 
                 a.Effects.ContainsKey(ActivityRole.Initiator) &&
                 a.Effects[ActivityRole.Initiator].ContainsKey(goalState) &&
                 a.Effects[ActivityRole.Initiator][goalState] == goalValue);
 
-            if (finalAction == null) return null;
+            if (finalAction == null)
+            {
+                plannerNPC.LogDebug($"   [PLAN FAIL] No activity found to satisfy {goalState}={goalValue}");
+                return null;
+            }
 
+            plannerNPC.LogDebug($"   [PLAN] Considering {finalAction.Name} to satisfy {goalState}={goalValue}");
+
+            // --- 1. CHECK STATE PRECONDITIONS ---
             if (finalAction.Preconditions.ContainsKey(ActivityRole.Initiator))
             {
                 foreach (var pre in finalAction.Preconditions[ActivityRole.Initiator])
                 {
-                    // Check if NPC meets the precondition
                     if (plannerNPC.GetState(pre.Key) != pre.Value)
                     {
+                        plannerNPC.LogDebug($"      [PLAN] Precondition {pre.Key}={pre.Value} not met. Planning sub-task...");
                         var subPlan = BuildRecursivePlan(plannerNPC, pre.Key, pre.Value, availableActivities);
+                        if (subPlan != null) plan.AddRange(subPlan);
+                        else return null;
+                    }
+                }
+            }
+
+            // --- 2. CHECK TAG PRECONDITIONS ---
+            if (finalAction.PreconditionTags.ContainsKey(ActivityRole.Initiator))
+            {
+                foreach (var tag in finalAction.PreconditionTags[ActivityRole.Initiator])
+                {
+                    if (!plannerNPC.HasTag(tag))
+                    {
+                        plannerNPC.LogDebug($"      [PLAN] Missing required tag '{tag}'. Planning sub-task...");
+                        var subPlan = BuildRecursivePlan(plannerNPC, tag, true, availableActivities);
                         if (subPlan != null) plan.AddRange(subPlan);
                         else return null;
                     }

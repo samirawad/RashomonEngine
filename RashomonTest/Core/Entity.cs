@@ -17,6 +17,9 @@ namespace GoapRpgPoC.Core
         // --- 3. STATE (What am I?) ---
         public Dictionary<string, bool> State { get; private set; } = new Dictionary<string, bool>();
 
+        // --- 4. TAGS (Intrinsic properties like "Edible", "Sharp") ---
+        public HashSet<string> Tags { get; private set; } = new HashSet<string>();
+
         public Entity(string name, Vector2 position)
         {
             Name = name;
@@ -27,6 +30,15 @@ namespace GoapRpgPoC.Core
         {
             child.Parent = this;
             Children.Add(child);
+        }
+
+        public void RemoveChild(Entity child)
+        {
+            if (Children.Contains(child))
+            {
+                child.Parent = null;
+                Children.Remove(child);
+            }
         }
 
         public void AddAffordance(Activity activity) => Affordances.Add(activity);
@@ -48,7 +60,23 @@ namespace GoapRpgPoC.Core
             return false;
         }
 
-        // --- 4. HEARTBEAT (Living Entities) ---
+        // --- 4. RECURSIVE TAG CHECK ---
+        public void AddTag(string tag) => Tags.Add(tag);
+        public bool HasTag(string tag)
+        {
+            // 1. Check myself
+            if (Tags.Contains(tag)) return true;
+
+            // 2. Check my children
+            foreach (var child in Children)
+            {
+                if (child.HasTag(tag)) return true;
+            }
+
+            return false;
+        }
+
+        // --- 5. HEARTBEAT (Living Entities) ---
         public virtual void Tick(int currentTick)
         {
             // Entities can update their internal states here

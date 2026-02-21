@@ -7,39 +7,36 @@ namespace GoapRpgPoC.Activities
 {
     public class SleepActivity : Activity
     {
-        private int _sleepTimer = 0;
-        private const int SLEEP_DURATION = 5;
+        private int _timer = 0;
+        public override Activity Clone() => new SleepActivity();
 
-        public SleepActivity(NPC sleeper)
+        public override void Bind(NPC initiator, NPC target = null)
         {
-            Name = $"{sleeper.Name} is sleeping";
-            Participants[ActivityRole.Initiator] = sleeper;
-
-            // Preconditions: Must be at home (this is handled by the planner moving them)
+            base.Bind(initiator, target);
             Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { "AtHome", true } };
-
-            // Effects: No longer tired
             Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsTired", false } };
         }
 
+        protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is sleeping";
+
+        public override void Initialize() { base.Initialize(); _timer = 0; }
+
         public override void OnTick(int currentTick)
         {
-            _sleepTimer++;
-            var sleeper = Participants[ActivityRole.Initiator];
+            if (++_timer >= 5) FinalizeActivity(currentTick);
+        }
 
-            if (_sleepTimer < SLEEP_DURATION)
-            {
-                Console.WriteLine($"   [SLEEP] {sleeper.Name} is snoring... (Tick {_sleepTimer}/{SLEEP_DURATION})");
-                sleeper.LogDebug($"[SLEEP] Snoring... {_sleepTimer}/{SLEEP_DURATION}");
-            }
-            else
-            {
-                // Reset the Sleep Need entity
-                var brain = sleeper.Children.OfType<NeedEntity>().FirstOrDefault(n => n.Name == "Energy");
-                brain?.Reset();
+        public override (bool valid, string blame, string reason) GetContractStatus()
+        {
+            if (!Participants[ActivityRole.Initiator].GetState("AtHome")) 
+                return (false, Participants[ActivityRole.Initiator].Name, "Not at home");
+            return (true, "", "");
+        }
 
-                ApplyEffects(currentTick);
-            }
+        protected override void OnFulfill()
+        {
+            var brain = Participants[ActivityRole.Initiator].Children.OfType<NeedEntity>().FirstOrDefault(n => n.Name == "Energy");
+            brain?.Reset();
         }
     }
 }

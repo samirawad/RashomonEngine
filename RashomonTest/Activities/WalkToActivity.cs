@@ -6,42 +6,47 @@ namespace GoapRpgPoC.Activities
 {
     public class WalkToActivity : Activity
     {
-        private NPC _walker;
-        private NPC _target;
+        private Entity _target;
 
-        public WalkToActivity(NPC walker, NPC target)
+        // Constructor for template
+        public WalkToActivity(Entity target) { _target = target; }
+
+        public override Activity Clone() => new WalkToActivity(_target);
+
+        public override void Bind(NPC initiator, NPC target = null)
         {
-            _walker = walker;
-            _target = target;
-            Name = $"{_walker.Name} is walking to {_target.Name}";
+            base.Bind(initiator, target);
             
-            Participants[ActivityRole.Initiator] = _walker;
-            Participants[ActivityRole.Target] = _target;
+            // Dynamic Effects based on the specific target
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { 
+                { $"Near({_target.Name})", true } 
+            };
 
-            // Effect: Walker is now near the target
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "NearTarget", true } };
-            Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "NearTarget", true } };
+            if (_target.Name.Contains("Home")) Effects[ActivityRole.Initiator]["AtHome"] = true;
+        }
+
+        protected override void UpdateName() 
+        {
+            Name = $"{Participants[ActivityRole.Initiator].Name} is walking to {_target.Name}";
         }
 
         public override void OnTick(int currentTick)
         {
-            // Simple logic: Move Bob 1 step closer to Alice
-            if (_walker.Position.X < _target.Position.X) _walker.Position = new Vector2(_walker.Position.X + 1, _walker.Position.Y);
-            else if (_walker.Position.X > _target.Position.X) _walker.Position = new Vector2(_walker.Position.X - 1, _walker.Position.Y);
+            var walker = Participants[ActivityRole.Initiator];
+            if (walker.Position.X < _target.Position.X) walker.Position = new Vector2(walker.Position.X + 1, walker.Position.Y);
+            else if (walker.Position.X > _target.Position.X) walker.Position = new Vector2(walker.Position.X - 1, walker.Position.Y);
             
-            if (_walker.Position.Y < _target.Position.Y) _walker.Position = new Vector2(_walker.Position.X, _walker.Position.Y + 1);
-            else if (_walker.Position.Y > _target.Position.Y) _walker.Position = new Vector2(_walker.Position.X, _walker.Position.Y - 1);
+            if (walker.Position.Y < _target.Position.Y) walker.Position = new Vector2(walker.Position.X, walker.Position.Y + 1);
+            else if (walker.Position.Y > _target.Position.Y) walker.Position = new Vector2(walker.Position.X, walker.Position.Y - 1);
 
-            string moveMsg = $"[MOVE] {_walker.Name} moved to {_walker.Position} (Target: {_target.Name} at {_target.Position})";
-            Console.WriteLine($"   {moveMsg}");
-            _walker.LogDebug(moveMsg);
+            if (Vector2.Distance(walker.Position, _target.Position) == 0) FinalizeActivity(currentTick);
+        }
 
-            // If we've arrived, finish the activity
-            if (Vector2.Distance(_walker.Position, _target.Position) == 0)
-            {
-                _walker.LogDebug($"[MOVE] Arrived at {_target.Name}.");
-                ApplyEffects(currentTick);
-            }
+        public override (bool valid, string blame, string reason) GetContractStatus()
+        {
+            if (Vector2.Distance(Participants[ActivityRole.Initiator].Position, _target.Position) > 0)
+                return (false, Participants[ActivityRole.Initiator].Name, "Not at destination");
+            return (true, "", "");
         }
     }
 }

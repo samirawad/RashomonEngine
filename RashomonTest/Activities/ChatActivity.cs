@@ -6,36 +6,45 @@ namespace GoapRpgPoC.Activities
 {
     public class ChatActivity : Activity
     {
-        private int _chatTimer = 0;
-        private const int CHAT_DURATION = 3; // How many ticks the chat lasts
+        private int _timer = 0;
+        public override Activity Clone() => new ChatActivity();
 
-        public ChatActivity(NPC initiator, NPC target)
+        public override void Bind(NPC initiator, NPC target = null)
         {
-            Name = $"{initiator.Name} is having a friendly chat with {target.Name}";
-            Participants[ActivityRole.Initiator] = initiator;
-            Participants[ActivityRole.Target] = target;
-
-            // Preconditions: Must be near each other
-            Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { "NearTarget", true } };
-
-            // Effects: Both satisfy their social need!
+            base.Bind(initiator, target);
+            Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { $"Near({target.Name})", true } };
             Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsLonely", false } };
             Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "IsLonely", false } };
         }
 
+        protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is chatting with {Participants[ActivityRole.Target].Name}";
+
+        public override void Initialize() { base.Initialize(); _timer = 0; }
+
         public override void OnTick(int currentTick)
         {
-            _chatTimer++;
+            var init = Participants[ActivityRole.Initiator];
+            var target = Participants[ActivityRole.Target];
 
-            if (_chatTimer < CHAT_DURATION)
+            // 1. Handshake check
+            if (target.SubscribedScene != this)
             {
-                Console.WriteLine($"   [CHAT] {Participants[ActivityRole.Initiator].Name} and {Participants[ActivityRole.Target].Name} are talking... (Tick {_chatTimer}/{CHAT_DURATION})");
+                init.LogDebug($"[CHAT] Waiting for {target.Name} to join...");
+                target.ReceiveInvitation(new Invitation(this, ActivityRole.Target, init));
+                return;
             }
-            else
-            {
-                // The "Director" decides the scene is over
-                ApplyEffects(currentTick);
-            }
+
+            // 2. Scene Progress
+            if (++_timer >= 3) FinalizeActivity(currentTick);
+        }
+
+        public override (bool valid, string blame, string reason) GetContractStatus()
+        {
+            var init = Participants[ActivityRole.Initiator];
+            var target = Participants[ActivityRole.Target];
+            if (Vector2.Distance(init.Position, target.Position) > 0) return (false, init.Name, "Walked away");
+            if (target.SubscribedScene != this) return (false, target.Name, "Ended the chat");
+            return (true, "", "");
         }
     }
 }

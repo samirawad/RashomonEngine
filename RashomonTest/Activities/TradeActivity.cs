@@ -7,30 +7,29 @@ namespace GoapRpgPoC.Activities
 {
     public class TradeActivity : Activity
     {
-        public TradeActivity(NPC buyer, NPC seller)
-        {
-            Name = $"{buyer.Name} is trading gold for {seller.Name}'s food";
-            Participants[ActivityRole.Initiator] = buyer;
-            Participants[ActivityRole.Target] = seller;
+        public override Activity Clone() => new TradeActivity();
 
-            // Preconditions: Buyer needs gold, Seller needs something edible
+        public override void Bind(NPC initiator, NPC target = null)
+        {
+            base.Bind(initiator, target);
+            
+            // Preconditions for the Buyer (Initiator)
             Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { 
                 { "HasGold", true }, 
-                { "NearTarget", true } 
+                { $"Near({target.Name})", true } 
             };
-            Preconditions[ActivityRole.Target] = new Dictionary<string, bool> { 
-                { "Edible", true } 
-            };
+            
+            // Requirements for the Seller (Target)
+            PreconditionTags[ActivityRole.Target] = new List<string> { "Edible" };
 
-            // Effects: Buyer gets food, loses gold. Seller gets gold, loses food.
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { 
-                { "Edible", true }, 
-                { "HasGold", false } 
-            };
-            Effects[ActivityRole.Target] = new Dictionary<string, bool> { 
-                { "HasGold", true }, 
-                { "Edible", false } 
-            };
+            // Effects for both
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "Edible", true }, { "HasGold", false } };
+            Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "HasGold", true }, { "Edible", false } };
+        }
+
+        protected override void UpdateName() 
+        {
+            Name = $"{Participants[ActivityRole.Initiator].Name} is trading with {Participants[ActivityRole.Target].Name}";
         }
 
         public override void OnTick(int currentTick)
@@ -38,38 +37,46 @@ namespace GoapRpgPoC.Activities
             var buyer = Participants[ActivityRole.Initiator];
             var seller = Participants[ActivityRole.Target];
 
-            // --- PHYSICAL ENTITY TRANSFER ---
-            // 1. Find the food (by TAG) and the gold entities (by STATE)
-            var foodItem = seller.Children.FirstOrDefault(c => c.HasTag("Edible"));
-            var goldItem = buyer.Children.FirstOrDefault(c => c.GetState("HasGold"));
-
-            if (foodItem != null && goldItem != null)
+            // 1. Check if Seller has accepted the invitation
+            if (seller.SubscribedScene != this)
             {
-                string tradeMsg = $"[TRADE] {buyer.Name} traded {goldItem.Name} for {seller.Name}'s {foodItem.Name}";
-                Console.WriteLine($"   {tradeMsg}");
-                buyer.LogDebug(tradeMsg);
-                seller.LogDebug(tradeMsg);
-
-                // 2. Move the entities in the hierarchy
-                seller.RemoveChild(foodItem);
-                buyer.AddChild(foodItem);
-
-                buyer.RemoveChild(goldItem);
-                seller.AddChild(goldItem);
-
-                ApplyEffects(currentTick);
+                // Send/Resend Invitation
+                buyer.LogDebug($"[TRADE] Sending invitation to {seller.Name}...");
+                seller.ReceiveInvitation(new Invitation(this, ActivityRole.Target, buyer));
+                
+                // We wait until they subscribe
+                return;
             }
-            else
-            {
-                string failMsg = $"[TRADE FAIL] Exchange between {buyer.Name} and {seller.Name} aborted.";
-                buyer.LogDebug(failMsg);
-                seller.LogDebug(failMsg);
 
-                if (foodItem == null) buyer.LogDebug($"   -> Reason: {seller.Name} has no items tagged 'Edible'");
-                if (goldItem == null) buyer.LogDebug($"   -> Reason: {buyer.Name} has no items with state 'HasGold'");
+            // 2. Both are here and subscribed! Execute the trade.
+            FinalizeActivity(currentTick);
+        }
 
-                IsFinished = true;
-            }
+        public override (bool valid, string blame, string reason) GetContractStatus()
+        {
+            var buyer = Participants[ActivityRole.Initiator];
+            var seller = Participants[ActivityRole.Target];
+
+            if (Vector2.Distance(buyer.Position, seller.Position) > 0) return (false, buyer.Name, "Too far from seller");
+            if (!seller.HasTag("Edible")) return (false, seller.Name, "No food to sell");
+            if (!buyer.GetState("HasGold")) return (false, buyer.Name, "No gold to buy");
+            if (seller.SubscribedScene != this) return (false, seller.Name, "Refused or left the trade");
+
+            return (true, "", "");
+        }
+
+        protected override void OnFulfill()
+        {
+            var buyer = Participants[ActivityRole.Initiator];
+            var seller = Participants[ActivityRole.Target];
+
+            var food = seller.Children.First(c => c.HasTag("Edible"));
+            var gold = buyer.Children.First(c => c.GetState("HasGold"));
+
+            seller.RemoveChild(food);
+            buyer.AddChild(food);
+            buyer.RemoveChild(gold);
+            seller.AddChild(gold);
         }
     }
 }

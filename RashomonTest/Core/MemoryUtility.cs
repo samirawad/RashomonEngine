@@ -36,7 +36,10 @@ namespace GoapRpgPoC.Core
 
                     writer.WriteLine("\n--- Timeline ---");
                     foreach (var memory in npc.Memories)
-                        writer.WriteLine($"[Tick {memory.Timestamp}] I remember: {memory.PastActivity.Name}");
+                    {
+                        string status = memory.PastActivity.WasSuccessful ? "Success" : "FAILED";
+                        writer.WriteLine($"[Tick {memory.Timestamp}] [{status}] I remember: {memory.PastActivity.Name}");
+                    }
                     
                     writer.WriteLine("\n--- Recursive State (Search) ---");
                     string[] interestingKeys = { "Edible", "HasGold", "IsHungry" };

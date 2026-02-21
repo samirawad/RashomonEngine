@@ -7,46 +7,33 @@ namespace GoapRpgPoC.Activities
 {
     public class EatActivity : Activity
     {
-        public EatActivity(NPC eater)
+        public override Activity Clone() => new EatActivity();
+
+        public override void Bind(NPC initiator, NPC target = null)
         {
-            Name = $"{eater.Name} is eating something delicious";
-            Participants[ActivityRole.Initiator] = eater;
-
-            // Precondition TAG: Initiator must have something with the "Edible" TAG
+            base.Bind(initiator, target);
             PreconditionTags[ActivityRole.Initiator] = new List<string> { "Edible" };
-
-            // Effects: No longer hungry AND no longer has food
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { 
-                { "IsHungry", false },
-                { "Edible", false } 
-            };
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsHungry", false } };
         }
 
-        public override void OnTick(int currentTick)
+        protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is eating";
+
+        public override void OnTick(int currentTick) => FinalizeActivity(currentTick);
+
+        public override (bool valid, string blame, string reason) GetContractStatus()
         {
             var eater = Participants[ActivityRole.Initiator];
+            if (!eater.Children.Any(c => c.HasTag("Edible"))) return (false, eater.Name, "No food found");
+            return (true, "", "");
+        }
 
-            // Logic: Find the child entity that has the "Edible" tag
-            var foodItem = eater.Children.FirstOrDefault(c => c.Tags.Contains("Edible"));
-
-            if (foodItem != null)
-            {
-                string eatMsg = $"[EAT] {eater.Name} consumes the {foodItem.Name}.";
-                Console.WriteLine($"   {eatMsg}");
-                eater.LogDebug(eatMsg);
-                
-                eater.RemoveChild(foodItem);
-                
-                var stomach = eater.Children.OfType<NeedEntity>().FirstOrDefault(n => n.Name == "Stomach");
-                stomach?.Reset();
-
-                ApplyEffects(currentTick);
-            }
-            else
-            {
-                eater.LogDebug("[EAT FAIL] Tried to eat but could not find an item with 'Edible' tag.");
-                IsFinished = true;
-            }
+        protected override void OnFulfill()
+        {
+            var eater = Participants[ActivityRole.Initiator];
+            var food = eater.Children.First(c => c.HasTag("Edible"));
+            eater.RemoveChild(food);
+            var stomach = eater.Children.OfType<NeedEntity>().FirstOrDefault(n => n.Name == "Stomach");
+            stomach?.Reset();
         }
     }
 }

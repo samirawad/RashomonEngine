@@ -9,9 +9,9 @@ namespace GoapRpgPoC.Activities
     {
         public EatActivity()
         {
-            RequiredCapability = "Mouth";
-            PreconditionTags[ActivityRole.Initiator] = new List<string> { "Edible" };
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsHungry", false } };
+            RequiredCapability = Tags.Mouth;
+            PreconditionTags[ActivityRole.Initiator] = new List<string> { Tags.Edible };
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { States.Hungry, false } };
         }
 
         public override Activity Clone() => new EatActivity();
@@ -26,15 +26,14 @@ namespace GoapRpgPoC.Activities
             if (!baseStatus.valid) return baseStatus;
 
             var eater = Participants[ActivityRole.Initiator];
-            if (!eater.Children.Any(c => c.HasTag("Edible"))) return (false, eater.Name, "No food found in inventory");
-            
+            if (!eater.Children.Any(c => c.HasTag(Tags.Edible))) return (false, eater.Name, "No food found");
             return (true, "", "");
         }
 
         protected override void OnFulfill()
         {
             var eater = Participants[ActivityRole.Initiator];
-            var food = eater.Children.First(c => c.HasTag("Edible"));
+            var food = eater.Children.First(c => c.HasTag(Tags.Edible));
             eater.RemoveChild(food);
             var stomach = eater.Children.OfType<NeedEntity>().FirstOrDefault(n => n.Name == "Stomach");
             stomach?.Reset();

@@ -11,8 +11,9 @@ namespace GoapRpgPoC.Activities
 
         public SleepActivity()
         {
-            Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { "AtHome", true } };
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsTired", false } };
+            RequiredCapability = Tags.Mouth; // Biological check (placeholder)
+            Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { States.AtHome, true } };
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { States.Tired, false } };
         }
 
         public override Activity Clone() => new SleepActivity();
@@ -28,9 +29,11 @@ namespace GoapRpgPoC.Activities
 
         public override (bool valid, string blame, string reason) GetContractStatus()
         {
-            var init = Participants[ActivityRole.Initiator];
-            if (!init.GetState("AtHome")) 
-                return (false, init.Name, "Not at home");
+            var baseStatus = base.GetContractStatus();
+            if (!baseStatus.valid) return baseStatus;
+
+            if (!Participants[ActivityRole.Initiator].GetState(States.AtHome)) 
+                return (false, Participants[ActivityRole.Initiator].Name, "Not at home");
             return (true, "", "");
         }
 

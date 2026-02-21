@@ -8,7 +8,7 @@ namespace GoapRpgPoC.Core
         public Vector2 Position { get; set; }
         
         // --- 1. HIERARCHY (The Container Logic) ---
-        public Entity Parent { get; set; }
+        public Entity? Parent { get; set; }
         public List<Entity> Children { get; protected set; } = new List<Entity>();
 
         // --- 2. AFFORDANCES (What can I do?) ---
@@ -62,8 +62,10 @@ namespace GoapRpgPoC.Core
 
         // --- 4. RECURSIVE TAG CHECK ---
         public void AddTag(string tag) => Tags.Add(tag);
-        public bool HasTag(string tag)
+        public bool HasTag(string? tag)
         {
+            if (string.IsNullOrEmpty(tag)) return true; // Empty requirement is always met
+
             // 1. Check myself
             if (Tags.Contains(tag)) return true;
 

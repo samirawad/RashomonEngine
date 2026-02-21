@@ -5,13 +5,13 @@ namespace GoapRpgPoC.Core
 {
     public abstract class Activity
     {
-        public string Name { get; protected set; }
+        public string Name { get; protected set; } = "Unnamed Activity";
         public bool IsFinished { get; protected set; } = false;
         public bool WasSuccessful { get; protected set; } = false;
         
         // --- NEW: THE CAPABILITY BRIDGE ---
         // The tag the INITIATOR must have to use this activity
-        public string RequiredCapability { get; protected set; }
+        public string? RequiredCapability { get; protected set; }
 
         public Dictionary<ActivityRole, NPC> Participants = new Dictionary<ActivityRole, NPC>();
         
@@ -21,7 +21,7 @@ namespace GoapRpgPoC.Core
 
         public abstract Activity Clone();
 
-        public virtual void Bind(NPC initiator, NPC target = null)
+        public virtual void Bind(NPC initiator, NPC? target = null)
         {
             Participants[ActivityRole.Initiator] = initiator;
             if (target != null) Participants[ActivityRole.Target] = target;
@@ -41,7 +41,7 @@ namespace GoapRpgPoC.Core
         public virtual (bool valid, string blame, string reason) GetContractStatus()
         {
             // NEW: Enforce Capability Check in the contract!
-            if (!Participants[ActivityRole.Initiator].HasTag(RequiredCapability))
+            if (!string.IsNullOrEmpty(RequiredCapability) && !Participants[ActivityRole.Initiator].HasTag(RequiredCapability))
                 return (false, Participants[ActivityRole.Initiator].Name, $"Missing required capability: {RequiredCapability}");
 
             return (true, "", "");

@@ -32,8 +32,35 @@ Activities are **Centralized Orchestration Units** (Scenes) with empty **Roles**
 
 ---
 
-## Simultaneous System Flow
-... (rest of the file)
+## The Behavioral Marketplace (Social Coordination)
+NPCs are **Social Opportunists**. They do not just follow static plans; they negotiate their participation in the world.
+
+1.  **The Invitation (Proposal)**: When an NPC (the Initiator) plans a social activity, they send an **Invitation** to potential participants.
+2.  **The Evaluation**: NPCs evaluate incoming invitations against their current highest-priority goal. If the role's payoff provides a faster or better path to a goal, they accept.
+3.  **Handshake & Commitment**: Upon acceptance, the NPC "Subscribes" to the shared scene, pausing their own autonomous plans to participate.
+
+---
+
+## Spatio-Temporal Affordances (The Party Model)
+Complex, multi-NPC activities (like Parties, Markets, or Rituals) are modeled as **Temporary Entities** anchored to a location.
+
+1.  **Anchor**: An activity entity (e.g., `PartyScene`) is added as a **Child** of a physical location (e.g., `Tavern`).
+2.  **Temporal Gating**: The activity entity uses its **State** to define availability (e.g., `IsActive = true`).
+3.  **Discovery**: NPCs find the activity by scanning the hierarchy of locations they know.
+4.  **Collective Participation**: Any number of NPCs can discover and join the same anchored scene simultaneously.
+
+---
+
+## Knowledge Propagation (Rumors & Information)
+Knowledge in the Rashomon Engine is a social commodity that flows through the Knowledge Graph.
+
+1.  **Relationship Sharing**: Activities (like `ChatActivity`) can have effects that modify the Knowledge Graph of the participants.
+2.  **Discovery via Interaction**: An NPC can "learn" about an entity (like a secret party or a distant resource) by participating in a scene with another NPC who already has that relationship.
+3.  **Subjective Reality**: This creates a world where different NPCs have radically different maps of the available affordances.
+
+---
+
+## Core Components
 
 ### 1. Entities (The Universal Atom)
 The base class for everything in the world. 
@@ -49,8 +76,7 @@ Specialized entities that manage a "Personal World" and own a **Brain Update Cyc
 ### 3. Activities (Scripted Contracts)
 Activities are the "verbs" of the world, designed as **Verifiable Contracts** for multi-agent coordination.
 - **Targeted States**: Activities use specific, targeted keys for preconditions (e.g., `Near(Alice)` instead of a generic `NearTarget`).
-- **Verification Guards**: Before applying effects, an activity MUST verify that its physical and logical conditions are still met (e.g., "Is the Target still in range?").
-- **Director Logic**: Orchestrates interactions between entities over time.
+- **Verification Guards**: Before applying effects, an activity MUST verify that its physical and logical conditions are still met.
 - **Atomic Physical Transfer**: Securely moves entities between hierarchies (e.g., `TradeActivity` swaps items).
 
 ### 4. The Planner (Discovery-Based)
@@ -68,7 +94,7 @@ The simulation operates on a **Parallel Heartbeat**:
     - **Perception**: NPC checks if their goal is still valid.
     - **Verification**: Current activity checks if its contract is still valid.
     - **Execution Slice**: NPC performs exactly **one tick** of the current activity.
-4.  **Contract Fulfillment**: Upon completion, guards are checked. If valid, effects are applied atomically. If invalid, the activity fails without applying effects.
+4.  **Contract Fulfillment**: Upon completion, guards are checked. If valid, effects are applied atomically.
 
 ---
 

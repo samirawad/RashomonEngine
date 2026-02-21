@@ -18,12 +18,12 @@ namespace GoapRpgPoC.Core
 
         // Social Coordination
         public List<Invitation> IncomingInvitations { get; private set; } = new List<Invitation>();
-        public Activity SubscribedScene { get; private set; } = null;
+        public Activity? SubscribedScene { get; private set; } = null;
 
         public NPC(string name, Vector2 startingPosition) : base(name, startingPosition) { }
 
         public void SetRelationship(string type, Entity entity) => Relationships[type] = entity;
-        public Entity GetRelationship(string type) => Relationships.ContainsKey(type) ? Relationships[type] : null;
+        public Entity? GetRelationship(string type) => Relationships.ContainsKey(type) ? Relationships[type] : null;
 
         public void Remember(Activity activity, int time) => Memories.Add(new Memory(activity, time));
 
@@ -62,7 +62,6 @@ namespace GoapRpgPoC.Core
             // 3. EXECUTION
             if (SubscribedScene != null)
             {
-                // We are participating in someone else's scene
                 LogDebug($"[BRAIN] Subscribed to Shared Scene: {SubscribedScene.Name}");
                 if (SubscribedScene.IsFinished)
                 {
@@ -90,7 +89,6 @@ namespace GoapRpgPoC.Core
                 }
             }
 
-            // Clear invitations for the next tick
             IncomingInvitations.Clear();
         }
 
@@ -104,12 +102,9 @@ namespace GoapRpgPoC.Core
             foreach (var invite in IncomingInvitations)
             {
                 var payoff = invite.GetPayoff();
-                
-                // Does this help a current need?
                 bool providesValue = false;
                 foreach (var effect in payoff)
                 {
-                    // If the payoff provides IsHungry=false and I am currently Hungry
                     if (GetState(effect.Key) != effect.Value)
                     {
                         providesValue = true;
@@ -120,25 +115,19 @@ namespace GoapRpgPoC.Core
                 if (providesValue)
                 {
                     LogDebug($"[BRAIN] Accepted invitation from {invite.Host.Name} to join {invite.Scene.Name}");
-                    
-                    // CLEAR CURRENT PLAN AND JOIN
                     PlanQueue.Clear();
                     _totalPlanSteps = 0;
-                    
                     SubscribedScene = invite.Scene;
-                    
-                    // Inform the scene that we have joined!
-                    // (Activity logic handles the rest)
-                    return; // Only join one scene at a time
+                    return; 
                 }
             }
         }
 
         private void CheckNeedsAndPlan()
         {
-            if (GetState("IsHungry")) GeneratePlan("IsHungry", false);
-            else if (GetState("IsTired")) GeneratePlan("IsTired", false);
-            else if (GetState("IsLonely")) GeneratePlan("IsLonely", false);
+            if (GetState(States.Hungry)) GeneratePlan(States.Hungry, false);
+            else if (GetState(States.Tired)) GeneratePlan(States.Tired, false);
+            else if (GetState(States.Lonely)) GeneratePlan(States.Lonely, false);
         }
 
         private void GeneratePlan(string goalState, bool goalValue)

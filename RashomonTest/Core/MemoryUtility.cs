@@ -42,7 +42,7 @@ namespace GoapRpgPoC.Core
                     }
                     
                     writer.WriteLine("\n--- Recursive State (Search) ---");
-                    string[] interestingKeys = { "Edible", "HasGold", "IsHungry" };
+                    string[] interestingKeys = { Tags.Edible, States.HasGold, States.Hungry };
                     foreach (var key in interestingKeys)
                         writer.WriteLine($"{key}: {npc.GetState(key)}");
                 }

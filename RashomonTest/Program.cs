@@ -10,7 +10,7 @@ namespace GoapRpgPoC
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== INITIALIZING CAPABILITY-AFFORDANCE BRIDGE v2.5 ===\n");
+            Console.WriteLine("=== INITIALIZING VOCABULARY-BASED TOWN v2.6 ===\n");
 
             World town = new World();
             
@@ -18,10 +18,12 @@ namespace GoapRpgPoC
             Location bobsHome = new Location("Bob's Cabin", 0, 0);
             Location alicesHome = new Location("Alice's Cottage", 5, 5);
             Location orchard = new Location("Greenwood Orchard", 8, 8);
+            Location tavern = new Location("The Rusty Tankard", 2, 2);
             
             town.AddLocation(bobsHome);
             town.AddLocation(alicesHome);
             town.AddLocation(orchard);
+            town.AddLocation(tavern);
 
             // 2. CREATE NPCs
             NPC bob = CreateNPC("Bob", bobsHome.Position);
@@ -30,42 +32,37 @@ namespace GoapRpgPoC
             town.AddNPC(alice);
 
             // 3. SET RELATIONSHIPS
-            bob.SetRelationship("Home", bobsHome);
-            bob.SetRelationship("Friend", alice);
-            alice.SetRelationship("Home", alicesHome);
-            alice.SetRelationship("Work", orchard);
+            bob.SetRelationship(Relations.Home, bobsHome);
+            bob.SetRelationship(Relations.Friend, alice);
+            bob.SetRelationship(Relations.LocalTavern, tavern);
 
-            // 4. ATTACH AFFORDANCES (Living on the OBJECT)
-            
-            // Destinations afford walking
+            alice.SetRelationship(Relations.Home, alicesHome);
+            alice.SetRelationship(Relations.Work, orchard);
+            alice.SetRelationship(Relations.LocalTavern, tavern);
+
+            // 4. ATTACH AFFORDANCES
             bobsHome.AddAffordance(new WalkToActivity(bobsHome));
             alice.AddAffordance(new WalkToActivity(alice));
             alicesHome.AddAffordance(new WalkToActivity(alicesHome));
             orchard.AddAffordance(new WalkToActivity(orchard));
 
-            // Social/Economic objects afford interactions
             alice.AddAffordance(new TradeActivity());
-            
-            // Locations afford biological survival
             bobsHome.AddAffordance(new SleepActivity());
             alicesHome.AddAffordance(new SleepActivity());
             orchard.AddAffordance(new HarvestActivity(orchard));
 
-            // Resources afford consumption
-            // We can't add this to a specific item yet because they don't exist,
-            // so we add it to the NPCs as a "Universal Rule" for items they might hold.
-            // Actually, for this PoC, we'll let the Mouth afford eating.
-            bob.Children.Find(c => c.Name == "Mouth").AddAffordance(new EatActivity());
-            alice.Children.Find(c => c.Name == "Mouth").AddAffordance(new EatActivity());
+            // Biological tools afford their own verbs
+            foreach (var npc in town.NPCs)
+            {
+                npc.Children.Find(c => c.Name == "Mouth")?.AddAffordance(new EatActivity());
+            }
 
             // 5. STARTING ITEMS
             Item gold = new Item("Gold Pouch");
-            gold.SetState("HasGold", true);
+            gold.SetState(States.HasGold, true);
             bob.AddChild(gold);
 
-            // 6. RUN THE SIMULATION
-            Console.WriteLine("Simulation Running. NPCs will match their Tags against world Affordances.\n");
-
+            // 6. RUN
             town.Run(100, 50);
 
             MemoryUtility.DumpMemories(town.NPCs);
@@ -78,20 +75,21 @@ namespace GoapRpgPoC
             NPC npc = new NPC(name, startPos);
             
             var hands = new BodyPartEntity("Hands");
-            hands.AddTag("Hands");
+            hands.AddTag(Tags.Hands);
             
             var feet = new BodyPartEntity("Feet");
-            feet.AddTag("Feet");
+            feet.AddTag(Tags.Feet);
             
             var mouth = new BodyPartEntity("Mouth");
-            mouth.AddTag("Mouth");
+            mouth.AddTag(Tags.Mouth);
             
             npc.AddChild(hands);
             npc.AddChild(feet);
             npc.AddChild(mouth);
             
-            npc.AddChild(new NeedEntity("Stomach", 5, "IsHungry"));
-            npc.AddChild(new NeedEntity("Energy", 15, "IsTired"));
+            npc.AddChild(new NeedEntity("Stomach", 5, States.Hungry));
+            npc.AddChild(new NeedEntity("Energy", 15, States.Tired));
+            npc.AddChild(new NeedEntity("Heart", 25, States.Lonely));
             return npc;
         }
     }

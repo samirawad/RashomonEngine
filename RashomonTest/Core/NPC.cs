@@ -44,9 +44,44 @@ namespace GoapRpgPoC.Core
             }
         }
 
+        // --- NEW: THE PERCEPTION HEARTBEAT ---
+        public void Perceive()
+        {
+            // 1. Clear all external perceptual states
+            // We find all keys starting with "Near(" or matching "AtHome"
+            var perceptualKeys = State.Keys.Where(k => k.StartsWith("Near(") || k == States.AtHome).ToList();
+            foreach (var key in perceptualKeys)
+            {
+                State[key] = false;
+            }
+
+            // 2. Scan relationships to update proximity
+            foreach (var relation in Relationships)
+            {
+                var entity = relation.Value;
+                if (Vector2.Distance(this.Position, entity.Position) == 0)
+                {
+                    // I am physically at this entity's location
+                    SetState($"Near({entity.Name})", true);
+
+                    // If this is my Home relationship, set AtHome
+                    if (relation.Key == Relations.Home)
+                    {
+                        SetState(States.AtHome, true);
+                    }
+                }
+            }
+            
+            // 3. Scan nearby NPCs who might not be in my relationships
+            // (In a full engine, we'd loop through world.NPCs here)
+        }
+
         // --- THE BRAIN UPDATE CYCLE ---
         public void Update(int currentTick)
         {
+            // 0. REFRESH REALITY
+            Perceive();
+
             // 1. EVALUATE INVITATIONS
             if (IncomingInvitations.Count > 0)
             {

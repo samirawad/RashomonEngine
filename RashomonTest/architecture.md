@@ -7,6 +7,22 @@ In this model, NPCs do not possess "skills." Instead, they possess **Capabilitie
 
 ---
 
+## Perception and Belief (Dynamic Reality)
+To prevent the "Sticky State" bug (where an NPC believes they are somewhere they are not), the engine distinguishes between two types of information in an NPC's mind:
+
+1.  **Status States (Internal)**: These represent the NPC's condition (e.g., `IsHungry`, `IsTired`). These are modified by **Activities** (e.g., Eating clears hunger).
+2.  **Perceptual States (External)**: These represent the NPC's spatial awareness (e.g., `AtHome`, `Near(Alice)`). These are modified by the **Perception Heartbeat**.
+
+### The Perception Heartbeat
+Every world tick, before planning or acting, an NPC performs a **Perception Scan**:
+- **Reset**: All perceptual states (all "Near" keys and "AtHome") are cleared.
+- **Calculate**: The NPC compares its physical `Position` to the positions of all entities in its **Knowledge Graph**.
+- **Update**: If the NPC is at the same coordinates as an entity, the corresponding `Near` state is set to `true` in its mind.
+
+This ensures the **Planner** always operates on the physical truth of the world, and the **Activity Contracts** are never "surprised" by a lying NPC.
+
+---
+
 ## The Capability-Affordance Bridge
 Every interaction in the world is a contract between a **Subject** (the NPC) and an **Object** (an Item, Location, or other NPC).
 

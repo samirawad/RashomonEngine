@@ -10,7 +10,7 @@ namespace GoapRpgPoC
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== INITIALIZING SCENE & ROLE SIMULATION v2.3 ===\n");
+            Console.WriteLine("=== INITIALIZING CAPABILITY-AFFORDANCE BRIDGE v2.5 ===\n");
 
             World town = new World();
             
@@ -35,32 +35,28 @@ namespace GoapRpgPoC
             alice.SetRelationship("Home", alicesHome);
             alice.SetRelationship("Work", orchard);
 
-            // 4. ATTACH TEMPLATES (The Rule of Discovery)
+            // 4. ATTACH AFFORDANCES (Living on the OBJECT)
             
-            // --- INTERNAL AFFORDANCES (Capabilities) ---
-            var bobFeet = bob.Children.Find(c => c.Name == "Feet");
-            var bobMouth = bob.Children.Find(c => c.Name == "Mouth");
-            var aliceFeet = alice.Children.Find(c => c.Name == "Feet");
-            var aliceMouth = alice.Children.Find(c => c.Name == "Mouth");
+            // Destinations afford walking
+            bobsHome.AddAffordance(new WalkToActivity(bobsHome));
+            alice.AddAffordance(new WalkToActivity(alice));
+            alicesHome.AddAffordance(new WalkToActivity(alicesHome));
+            orchard.AddAffordance(new WalkToActivity(orchard));
 
-            // Feet afford movement to known entities
-            bobFeet.AddAffordance(new WalkToActivity(bobsHome));
-            bobFeet.AddAffordance(new WalkToActivity(alice));
-            aliceFeet.AddAffordance(new WalkToActivity(alicesHome));
-            aliceFeet.AddAffordance(new WalkToActivity(orchard));
-
-            // Mouths afford eating
-            bobMouth.AddAffordance(new EatActivity());
-            aliceMouth.AddAffordance(new EatActivity());
-
-            // --- EXTERNAL AFFORDANCES (Environment) ---
+            // Social/Economic objects afford interactions
+            alice.AddAffordance(new TradeActivity());
+            
+            // Locations afford biological survival
             bobsHome.AddAffordance(new SleepActivity());
             alicesHome.AddAffordance(new SleepActivity());
             orchard.AddAffordance(new HarvestActivity(orchard));
 
-            // --- SOCIAL AFFORDANCES (Relationships) ---
-            // Alice affords trading to those who know her
-            alice.AddAffordance(new TradeActivity());
+            // Resources afford consumption
+            // We can't add this to a specific item yet because they don't exist,
+            // so we add it to the NPCs as a "Universal Rule" for items they might hold.
+            // Actually, for this PoC, we'll let the Mouth afford eating.
+            bob.Children.Find(c => c.Name == "Mouth").AddAffordance(new EatActivity());
+            alice.Children.Find(c => c.Name == "Mouth").AddAffordance(new EatActivity());
 
             // 5. STARTING ITEMS
             Item gold = new Item("Gold Pouch");
@@ -68,7 +64,7 @@ namespace GoapRpgPoC
             bob.AddChild(gold);
 
             // 6. RUN THE SIMULATION
-            Console.WriteLine("Simulation Running. Every action is now a unique scene instance.\n");
+            Console.WriteLine("Simulation Running. NPCs will match their Tags against world Affordances.\n");
 
             town.Run(100, 50);
 
@@ -80,9 +76,20 @@ namespace GoapRpgPoC
         static NPC CreateNPC(string name, Vector2 startPos)
         {
             NPC npc = new NPC(name, startPos);
-            npc.AddChild(new BodyPartEntity("Hands"));
-            npc.AddChild(new BodyPartEntity("Feet"));
-            npc.AddChild(new BodyPartEntity("Mouth"));
+            
+            var hands = new BodyPartEntity("Hands");
+            hands.AddTag("Hands");
+            
+            var feet = new BodyPartEntity("Feet");
+            feet.AddTag("Feet");
+            
+            var mouth = new BodyPartEntity("Mouth");
+            mouth.AddTag("Mouth");
+            
+            npc.AddChild(hands);
+            npc.AddChild(feet);
+            npc.AddChild(mouth);
+            
             npc.AddChild(new NeedEntity("Stomach", 5, "IsHungry"));
             npc.AddChild(new NeedEntity("Energy", 15, "IsTired"));
             return npc;

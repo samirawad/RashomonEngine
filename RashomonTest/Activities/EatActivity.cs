@@ -7,14 +7,14 @@ namespace GoapRpgPoC.Activities
 {
     public class EatActivity : Activity
     {
-        public override Activity Clone() => new EatActivity();
-
-        public override void Bind(NPC initiator, NPC target = null)
+        public EatActivity()
         {
-            base.Bind(initiator, target);
+            RequiredCapability = "Mouth";
             PreconditionTags[ActivityRole.Initiator] = new List<string> { "Edible" };
             Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsHungry", false } };
         }
+
+        public override Activity Clone() => new EatActivity();
 
         protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is eating";
 
@@ -22,8 +22,12 @@ namespace GoapRpgPoC.Activities
 
         public override (bool valid, string blame, string reason) GetContractStatus()
         {
+            var baseStatus = base.GetContractStatus();
+            if (!baseStatus.valid) return baseStatus;
+
             var eater = Participants[ActivityRole.Initiator];
-            if (!eater.Children.Any(c => c.HasTag("Edible"))) return (false, eater.Name, "No food found");
+            if (!eater.Children.Any(c => c.HasTag("Edible"))) return (false, eater.Name, "No food found in inventory");
+            
             return (true, "", "");
         }
 

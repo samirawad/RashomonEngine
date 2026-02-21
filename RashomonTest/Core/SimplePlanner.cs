@@ -13,6 +13,7 @@ namespace GoapRpgPoC.Core
             _trace.Clear();
             _trace.AppendLine($"[PLAN SEARCH] Goal: {goalState}={goalValue}");
 
+            // Gather EVERY potential template from the NPC's world-view
             List<Activity> templates = new List<Activity>();
             foreach (var relation in plannerNPC.Relationships.Values) templates.AddRange(relation.Affordances);
             foreach (var child in plannerNPC.Children) templates.AddRange(child.Affordances);
@@ -29,78 +30,93 @@ namespace GoapRpgPoC.Core
             string indent = new string(' ', depth * 3);
             List<Activity> plan = new List<Activity>();
 
-            // 1. DISCOVERY: Find a template that matches
-            Activity template = templates.FirstOrDefault(a => 
+            // 1. Find all templates that satisfy the effect
+            var potentialMatches = templates.Where(a => 
                 a.Effects.ContainsKey(ActivityRole.Initiator) &&
                 a.Effects[ActivityRole.Initiator].ContainsKey(goalState) &&
                 a.Effects[ActivityRole.Initiator][goalState] == goalValue);
 
-            if (template == null)
+            foreach (var template in potentialMatches)
             {
-                _trace.AppendLine($"{indent}[FAIL] No template satisfies {goalState}={goalValue}");
-                return null;
-            }
-
-            // 2. INSTANTIATION: Clone and bind the roles
-            Activity action = template.Clone();
-            
-            // Determine the target (If the affordance came from an external relationship entity)
-            NPC target = null;
-            var ownerEntity = plannerNPC.Relationships.Values.FirstOrDefault(e => e.Affordances.Contains(template));
-            if (ownerEntity is NPC npcTarget) target = npcTarget;
-
-            action.Bind(plannerNPC, target);
-            _trace.AppendLine($"{indent}[MATCH] Created bound instance of {action.Name}");
-
-            // 3. RECURSIVE VERIFICATION
-            foreach (var role in action.Preconditions.Keys)
-            {
-                var participant = action.Participants[role];
-                foreach (var pre in action.Preconditions[role])
+                // 2. CAPABILITY CHECK: Can I physically do this?
+                if (!string.IsNullOrEmpty(template.RequiredCapability) && !plannerNPC.HasTag(template.RequiredCapability))
                 {
-                    if (participant.GetState(pre.Key) != pre.Value)
+                    _trace.AppendLine($"{indent}[SKIP] I lack capability '{template.RequiredCapability}' for {template.GetType().Name}");
+                    continue;
+                }
+
+                // 3. BINDING & RECURSION
+                Activity action = template.Clone();
+                NPC target = null;
+                var ownerEntity = plannerNPC.Relationships.Values.FirstOrDefault(e => e.Affordances.Contains(template));
+                if (ownerEntity is NPC npcTarget) target = npcTarget;
+
+                action.Bind(plannerNPC, target);
+                _trace.AppendLine($"{indent}[MATCH] Considering {action.Name}");
+
+                bool subPlanSuccess = true;
+
+                // Check States
+                foreach (var role in action.Preconditions.Keys)
+                {
+                    var participant = action.Participants[role];
+                    foreach (var pre in action.Preconditions[role])
                     {
-                        if (role == ActivityRole.Initiator)
+                        if (participant.GetState(pre.Key) != pre.Value)
                         {
-                            _trace.AppendLine($"{indent}   [NEED] My precondition {pre.Key}={pre.Value} not met. Sub-planning...");
-                            var subPlan = BuildRecursivePlan(plannerNPC, pre.Key, pre.Value, templates, depth + 1);
-                            if (subPlan != null) plan.AddRange(subPlan);
-                            else return null;
-                        }
-                        else
-                        {
-                            _trace.AppendLine($"{indent}   [FAIL] Target {participant.Name} doesn't meet {pre.Key}={pre.Value}");
-                            return null;
+                            if (role == ActivityRole.Initiator)
+                            {
+                                _trace.AppendLine($"{indent}   [NEED] {pre.Key}={pre.Value}. Sub-planning...");
+                                var subPlan = BuildRecursivePlan(plannerNPC, pre.Key, pre.Value, templates, depth + 1);
+                                if (subPlan != null) plan.AddRange(subPlan);
+                                else { subPlanSuccess = false; break; }
+                            }
+                            else
+                            {
+                                _trace.AppendLine($"{indent}   [FAIL] {participant.Name} missing state {pre.Key}");
+                                subPlanSuccess = false; break;
+                            }
                         }
                     }
+                    if (!subPlanSuccess) break;
+                }
+
+                if (!subPlanSuccess) continue;
+
+                // Check Tags
+                foreach (var role in action.PreconditionTags.Keys)
+                {
+                    var participant = action.Participants[role];
+                    foreach (var tag in action.PreconditionTags[role])
+                    {
+                        if (!participant.HasTag(tag))
+                        {
+                            if (role == ActivityRole.Initiator)
+                            {
+                                _trace.AppendLine($"{indent}   [NEED] Tag '{tag}'. Sub-planning...");
+                                var subPlan = BuildRecursivePlan(plannerNPC, tag, true, templates, depth + 1);
+                                if (subPlan != null) plan.AddRange(subPlan);
+                                else { subPlanSuccess = false; break; }
+                            }
+                            else
+                            {
+                                _trace.AppendLine($"{indent}   [FAIL] {participant.Name} missing tag '{tag}'");
+                                subPlanSuccess = false; break;
+                            }
+                        }
+                    }
+                    if (!subPlanSuccess) break;
+                }
+
+                if (subPlanSuccess)
+                {
+                    plan.Add(action);
+                    return plan;
                 }
             }
 
-            foreach (var role in action.PreconditionTags.Keys)
-            {
-                var participant = action.Participants[role];
-                foreach (var tag in action.PreconditionTags[role])
-                {
-                    if (!participant.HasTag(tag))
-                    {
-                        if (role == ActivityRole.Initiator)
-                        {
-                            _trace.AppendLine($"{indent}   [NEED] Missing tag '{tag}'. Sub-planning...");
-                            var subPlan = BuildRecursivePlan(plannerNPC, tag, true, templates, depth + 1);
-                            if (subPlan != null) plan.AddRange(subPlan);
-                            else return null;
-                        }
-                        else
-                        {
-                            _trace.AppendLine($"{indent}   [FAIL] Target {participant.Name} missing tag '{tag}'");
-                            return null;
-                        }
-                    }
-                }
-            }
-
-            plan.Add(action);
-            return plan;
+            _trace.AppendLine($"{indent}[FAIL] No valid path for {goalState}={goalValue}");
+            return null;
         }
     }
 }

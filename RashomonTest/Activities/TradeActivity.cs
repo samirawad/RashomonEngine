@@ -7,29 +7,28 @@ namespace GoapRpgPoC.Activities
 {
     public class TradeActivity : Activity
     {
+        public TradeActivity()
+        {
+            RequiredCapability = "Hands";
+            Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { "HasGold", true } };
+            PreconditionTags[ActivityRole.Target] = new List<string> { "Edible" };
+
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "Edible", true }, { "HasGold", false } };
+            Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "HasGold", true }, { "Edible", false } };
+        }
+
         public override Activity Clone() => new TradeActivity();
 
         public override void Bind(NPC initiator, NPC target = null)
         {
             base.Bind(initiator, target);
-            
-            // Preconditions for the Buyer (Initiator)
-            Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { 
-                { "HasGold", true }, 
-                { $"Near({target.Name})", true } 
-            };
-            
-            // Requirements for the Seller (Target)
-            PreconditionTags[ActivityRole.Target] = new List<string> { "Edible" };
-
-            // Effects for both
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "Edible", true }, { "HasGold", false } };
-            Effects[ActivityRole.Target] = new Dictionary<string, bool> { { "HasGold", true }, { "Edible", false } };
+            if (target != null) Preconditions[ActivityRole.Initiator][$"Near({target.Name})"] = true;
         }
 
         protected override void UpdateName() 
         {
-            Name = $"{Participants[ActivityRole.Initiator].Name} is trading with {Participants[ActivityRole.Target].Name}";
+            var sellerName = Participants.ContainsKey(ActivityRole.Target) ? Participants[ActivityRole.Target].Name : "someone";
+            Name = $"{Participants[ActivityRole.Initiator].Name} is trading with {sellerName}";
         }
 
         public override void OnTick(int currentTick)
@@ -37,30 +36,28 @@ namespace GoapRpgPoC.Activities
             var buyer = Participants[ActivityRole.Initiator];
             var seller = Participants[ActivityRole.Target];
 
-            // 1. Check if Seller has accepted the invitation
             if (seller.SubscribedScene != this)
             {
-                // Send/Resend Invitation
-                buyer.LogDebug($"[TRADE] Sending invitation to {seller.Name}...");
+                buyer.LogDebug($"[TRADE] Waiting for {seller.Name} to join trade...");
                 seller.ReceiveInvitation(new Invitation(this, ActivityRole.Target, buyer));
-                
-                // We wait until they subscribe
                 return;
             }
 
-            // 2. Both are here and subscribed! Execute the trade.
             FinalizeActivity(currentTick);
         }
 
         public override (bool valid, string blame, string reason) GetContractStatus()
         {
+            var baseStatus = base.GetContractStatus();
+            if (!baseStatus.valid) return baseStatus;
+
             var buyer = Participants[ActivityRole.Initiator];
             var seller = Participants[ActivityRole.Target];
 
             if (Vector2.Distance(buyer.Position, seller.Position) > 0) return (false, buyer.Name, "Too far from seller");
             if (!seller.HasTag("Edible")) return (false, seller.Name, "No food to sell");
             if (!buyer.GetState("HasGold")) return (false, buyer.Name, "No gold to buy");
-            if (seller.SubscribedScene != this) return (false, seller.Name, "Refused or left the trade");
+            if (seller.SubscribedScene != this) return (false, seller.Name, "Not participating");
 
             return (true, "", "");
         }

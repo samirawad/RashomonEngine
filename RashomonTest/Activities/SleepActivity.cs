@@ -8,14 +8,14 @@ namespace GoapRpgPoC.Activities
     public class SleepActivity : Activity
     {
         private int _timer = 0;
-        public override Activity Clone() => new SleepActivity();
 
-        public override void Bind(NPC initiator, NPC target = null)
+        public SleepActivity()
         {
-            base.Bind(initiator, target);
             Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { "AtHome", true } };
             Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "IsTired", false } };
         }
+
+        public override Activity Clone() => new SleepActivity();
 
         protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is sleeping";
 
@@ -28,8 +28,9 @@ namespace GoapRpgPoC.Activities
 
         public override (bool valid, string blame, string reason) GetContractStatus()
         {
-            if (!Participants[ActivityRole.Initiator].GetState("AtHome")) 
-                return (false, Participants[ActivityRole.Initiator].Name, "Not at home");
+            var init = Participants[ActivityRole.Initiator];
+            if (!init.GetState("AtHome")) 
+                return (false, init.Name, "Not at home");
             return (true, "", "");
         }
 

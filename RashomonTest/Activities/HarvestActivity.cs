@@ -9,16 +9,15 @@ namespace GoapRpgPoC.Activities
         private Entity _orchard;
         private int _timer = 0;
 
-        public HarvestActivity(Entity orchard) { _orchard = orchard; }
-
-        public override Activity Clone() => new HarvestActivity(_orchard);
-
-        public override void Bind(NPC initiator, NPC target = null)
-        {
-            base.Bind(initiator, target);
+        public HarvestActivity(Entity orchard) 
+        { 
+            _orchard = orchard; 
+            RequiredCapability = "Hands";
             Preconditions[ActivityRole.Initiator] = new Dictionary<string, bool> { { $"Near({_orchard.Name})", true } };
             Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { "Edible", true } };
         }
+
+        public override Activity Clone() => new HarvestActivity(_orchard);
 
         protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is harvesting at {_orchard.Name}";
 
@@ -31,8 +30,12 @@ namespace GoapRpgPoC.Activities
 
         public override (bool valid, string blame, string reason) GetContractStatus()
         {
-            if (Vector2.Distance(Participants[ActivityRole.Initiator].Position, _orchard.Position) > 0)
-                return (false, Participants[ActivityRole.Initiator].Name, "Not at orchard");
+            var baseStatus = base.GetContractStatus();
+            if (!baseStatus.valid) return baseStatus;
+
+            var init = Participants[ActivityRole.Initiator];
+            if (Vector2.Distance(init.Position, _orchard.Position) > 0)
+                return (false, init.Name, "Not at orchard");
             return (true, "", "");
         }
 

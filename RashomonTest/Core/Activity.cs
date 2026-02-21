@@ -9,23 +9,22 @@ namespace GoapRpgPoC.Core
         public bool IsFinished { get; protected set; } = false;
         public bool WasSuccessful { get; protected set; } = false;
         
-        // Roles to be filled (e.g., Initiator, Target)
+        // --- NEW: THE CAPABILITY BRIDGE ---
+        // The tag the INITIATOR must have to use this activity
+        public string RequiredCapability { get; protected set; }
+
         public Dictionary<ActivityRole, NPC> Participants = new Dictionary<ActivityRole, NPC>();
         
         public Dictionary<ActivityRole, Dictionary<string, bool>> Preconditions = new Dictionary<ActivityRole, Dictionary<string, bool>>();
         public Dictionary<ActivityRole, Dictionary<string, bool>> Effects = new Dictionary<ActivityRole, Dictionary<string, bool>>();
         public Dictionary<ActivityRole, List<string>> PreconditionTags = new Dictionary<ActivityRole, List<string>>();
 
-        // --- NEW: CLONING FOR LATE BINDING ---
-        // Every activity must be able to create a fresh copy of itself
         public abstract Activity Clone();
 
         public virtual void Bind(NPC initiator, NPC target = null)
         {
             Participants[ActivityRole.Initiator] = initiator;
             if (target != null) Participants[ActivityRole.Target] = target;
-            
-            // Re-generate the name based on the actual participants
             UpdateName();
         }
 
@@ -41,6 +40,10 @@ namespace GoapRpgPoC.Core
 
         public virtual (bool valid, string blame, string reason) GetContractStatus()
         {
+            // NEW: Enforce Capability Check in the contract!
+            if (!Participants[ActivityRole.Initiator].HasTag(RequiredCapability))
+                return (false, Participants[ActivityRole.Initiator].Name, $"Missing required capability: {RequiredCapability}");
+
             return (true, "", "");
         }
 

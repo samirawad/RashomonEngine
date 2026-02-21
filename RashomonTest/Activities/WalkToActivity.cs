@@ -8,27 +8,17 @@ namespace GoapRpgPoC.Activities
     {
         private Entity _target;
 
-        // Constructor for template
-        public WalkToActivity(Entity target) { _target = target; }
-
-        public override Activity Clone() => new WalkToActivity(_target);
-
-        public override void Bind(NPC initiator, NPC target = null)
-        {
-            base.Bind(initiator, target);
-            
-            // Dynamic Effects based on the specific target
-            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { 
-                { $"Near({_target.Name})", true } 
-            };
-
+        public WalkToActivity(Entity target) 
+        { 
+            _target = target; 
+            RequiredCapability = "Feet";
+            Effects[ActivityRole.Initiator] = new Dictionary<string, bool> { { $"Near({_target.Name})", true } };
             if (_target.Name.Contains("Home")) Effects[ActivityRole.Initiator]["AtHome"] = true;
         }
 
-        protected override void UpdateName() 
-        {
-            Name = $"{Participants[ActivityRole.Initiator].Name} is walking to {_target.Name}";
-        }
+        public override Activity Clone() => new WalkToActivity(_target);
+
+        protected override void UpdateName() => Name = $"{Participants[ActivityRole.Initiator].Name} is walking to {_target.Name}";
 
         public override void OnTick(int currentTick)
         {
@@ -44,6 +34,9 @@ namespace GoapRpgPoC.Activities
 
         public override (bool valid, string blame, string reason) GetContractStatus()
         {
+            var baseStatus = base.GetContractStatus();
+            if (!baseStatus.valid) return baseStatus;
+
             if (Vector2.Distance(Participants[ActivityRole.Initiator].Position, _target.Position) > 0)
                 return (false, Participants[ActivityRole.Initiator].Name, "Not at destination");
             return (true, "", "");

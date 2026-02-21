@@ -1,37 +1,38 @@
 # Rashomon Engine Architecture Guide
 
 ## Overview
-The Rashomon Engine is a Goal-Oriented Action Planning (GOAP) proof of concept built on the **Uniform Entity Container** model and a **Behavioral Marketplace** coordination system.
+The Rashomon Engine is a Goal-Oriented Action Planning (GOAP) proof of concept built on the **Uniform Entity Container** model and the **Capability-Affordance Bridge**. 
+
+In this model, NPCs do not possess "skills." Instead, they possess **Capabilities** (Tags) and consume **Affordances** (Activities) provided by other entities in the world.
+
+---
+
+## The Capability-Affordance Bridge
+Every interaction in the world is a contract between a **Subject** (the NPC) and an **Object** (an Item, Location, or other NPC).
+
+1.  **Affordances live on the Object**: An entity only affords activities to *others*. (e.g., An Apple affords "Eat", a Destination affords "WalkTo", a Merchant affords "Trade").
+2.  **Capabilities live on the Subject**: An NPC provides the physical means to interact via **Tags** on their internal parts (e.g., a "Mouth" part tagged `Mouth`, "Feet" parts tagged `Feet`).
+3.  **The Interaction Rule**: An NPC can only plan an activity if they possess the **Required Capability** defined by that activity's template.
 
 ---
 
 ## The Rule of Discovery
-To maintain a pure container model, **Activities must never be hardcoded to an NPC.** Instead, they must be attached as **Affordances** to the entities that provide them.
+NPCs "find" their way through the world by matching their internal Capabilities against external Affordances:
+1.  **Scan**: NPC scans their **Knowledge Graph** (Relationships and Children) for entities.
+2.  **Filter**: NPC identifies which entities "offer" affordances.
+3.  **Match**: The Planner verifies if the NPC has the **Tag** required to "unlock" that affordance.
 
 ---
 
 ## Activities as Scripted Scenes
-Activities are **Scripted Scenes** with empty **Roles**. They are fundamental design patterns, not specific events.
-1.  **Late Binding**: An activity does not know who its participants are until it is **Bound**.
-2.  **Roles**: Participants are identified by keys (e.g., `Initiator`, `Target`, `Guest`). 
-3.  **Instantiation**: When an NPC "discovers" an affordance, the engine creates a **fresh instance** of that activity scene.
+Activities are **Centralized Orchestration Units** (Scenes) with empty **Roles**.
+1.  **Late Binding**: An activity binds participants to roles (Initiator, Target, etc.) during planning.
+2.  **Verifiable Contracts**: Before completion, an activity verifies that the Initiator still has the Capability and the Object still provides the Affordance.
+3.  **Atomic Truth**: Social activities are shared instances; one object orchestrates all participants simultaneously.
 
 ---
 
-## The Behavioral Marketplace (Social Coordination)
-NPCs are **Social Opportunists**. They do not just follow static plans; they negotiate their participation in the world.
-
-1.  **The Invitation (Proposal)**: When an NPC (the Initiator) plans a social activity, they send an **Invitation** to potential participants. The invitation includes the **Scene** and the **Role Payoff** (the effects that role provides).
-2.  **The Evaluation**: Every tick, an NPC evaluates incoming invitations against their current highest-priority goal.
-    - If the role's payoff satisfies a goal more effectively than their current plan, the NPC **Accepts**.
-    - If they are busy with a higher-priority task (e.g., putting out a fire), they **Decline**.
-3.  **Handshake & Commitment**: Upon acceptance, the NPC clears their current `PlanQueue` and "Subscribes" to the shared scene.
-4.  **Autonomous Abandonment**: Since NPCs check their needs every tick, they can "Unsubscribe" from a scene (like a Party or a Card Game) the moment their needs change or are satisfied.
-5.  **Uniformity**: This system handles everything from solo acts (walking) to complex multi-user events (parties) using the same handshake logic.
-
----
-
-## Core Components
+## Simultaneous System Flow
 ... (rest of the file)
 
 ### 1. Entities (The Universal Atom)
